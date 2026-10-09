@@ -460,7 +460,7 @@ function midClick(){if(!G||G.win!=null||fxBusy)return;if(G.phase=='moving'&&!HRO
 function toggleAM(e){if(e)e.stopPropagation();AM=!AM;render()}
 addEventListener('click',e=>{if(AM&&!(e.target.closest&&e.target.closest('.am'))){AM=false;render()}});
 function amGo(k){AM=false;if(k=='tr')return openTr();BM={t:k,m:'b',sel:null,note:''};render()}
-const actBtn=(on,ph)=>G.win!=null?'':`<div class="am"><button class="s${AM&&on?' on':''}" ${on?'':'disabled'} onclick="toggleAM(event)">Actions &#9652;</button>${AM&&on?`<div class="amm"><button class="s" onclick="amGo('tr')" ${ph=='debt'?'disabled':''}>Trade</button><button class="s" onclick="amGo('bs')">Build / Sell Houses</button><button class="s" onclick="amGo('mg')">Mortgage Properties</button></div>`:''}</div>`;
+const actBtn=(on,ph)=>G.win!=null?'':`<div class="am"><button class="s${AM&&on?' on':''}" ${on?'':'disabled'} onclick="toggleAM(event)">Actions &#9652;</button>${AM&&on?`<div class="amm"><button class="s" onclick="amGo('tr')">Trade</button><button class="s" onclick="amGo('bs')">Build / Sell Houses</button><button class="s" onclick="amGo('mg')">Mortgage Properties</button></div>`:''}</div>`;
 function bmTap(i){const s=S[i],q=me(),B=BM;if(!s.p)return;const bad=t=>{B.sel=null;B.note=t;render()};
  if(G.own[i]!==G.cur)return bad(G.own[i]==null?s.n+' is not owned by anyone.':s.n+' belongs to '+G.pl[G.own[i]].n+'.');
  if(B.t=='bs'){if(!s.g)return bad('Houses can only be built on color properties.');const h=G.h[i]||0,c=HC[s.g];
