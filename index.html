@@ -589,16 +589,31 @@ function aiDebt(p){const d=G.debt;if(p.cash>=d.a)return payDebt();
  bankrupt(p,d.to);render()}
 
 function own2(t){const o={...G.own};t.give.forEach(i=>o[i]=t.to);t.get.forEach(i=>o[i]=t.from);return o}
-function setScore(q,o){let s=0;for(const g in grp){const ids=grp[g],n=ids.filter(i=>o[i]===q.i).length;if(!n)continue;const tot=ids.reduce((x,i)=>x+S[i].p,0),r=n/ids.length;s+=n==ids.length?tot*.9+HC[g]*6:tot*.24*r*r}
+const nFull=(q,o)=>Object.keys(grp).filter(g=>grp[g].every(i=>o[i]===q.i)).length;
+function setScore(q,o){let s=0;for(const g in grp){const ids=grp[g],n=ids.filter(i=>o[i]===q.i).length;if(!n)continue;const tot=ids.reduce((x,i)=>x+S[i].p,0),r=n/ids.length;
+  if(n==ids.length){s+=tot*1.15+HC[g]*9;continue}
+  const blocked=ids.some(i=>o[i]!=null&&o[i]!==q.i);
+  s+=tot*.24*r*r*(blocked?.75:1)+(n==ids.length-1&&!blocked?tot*.2:0)}
  const rl=GI('rail').filter(i=>o[i]===q.i).length,ut=GI('util').filter(i=>o[i]===q.i).length;return s+rl*rl*30+ut*ut*40}
 function tradeNet(t,q){const o2=own2(t),pf=G.pl[t.from],pt=G.pl[t.to],other=q===pf?pt:pf,fromSide=q===pf;
  const base=l=>l.reduce((x,i)=>x+(i>=100?60:S[i].p*(G.mort[i]?.6:1)),0);
  const recv=fromSide?t.get:t.give,sent=fromSide?t.give:t.get,cashIn=fromSide?t.rc-t.gc:t.gc-t.rc;
- const dSelf=setScore(q,o2)-setScore(q,G.own),dOther=setScore(other,o2)-setScore(other,G.own);
- return base(recv)-base(sent)+cashIn+dSelf-.5*Math.max(0,dOther)}
+ const s0=setScore(q,G.own),s1=setScore(q,o2),dSelf=s1-s0,dOther=setScore(other,o2)-setScore(other,G.own);
+ const qf0=nFull(q,G.own),qf1=nFull(q,o2),of0=nFull(other,G.own),of1=nFull(other,o2);
+ let wo=.5;if(of1>of0){const lead=Math.max(0,Math.min(.3,(assets(other)-assets(q))/3000));wo=qf1>qf0?.55:.8+lead}
+ let net=base(recv)-base(sent)+cashIn+dSelf-wo*Math.max(0,dOther);
+ if(qf1<qf0)net-=.35*Math.max(0,s0-s1);
+ return net}
 const trOkFor=(t,q)=>tradeNet(t,q)>15;
 function aiCounter(t){const a=G.pl[t.to],h=G.pl[t.from];
- for(let d=10;d<=h.cash+(t.rc||0);d+=10){const u={...t,give:t.give.slice(),get:t.get.slice()};let left=d;const r=Math.min(u.rc,left);u.rc-=r;left-=r;u.gc+=left;if(u.gc>h.cash)break;if(trOkFor(u,a))return u}
+ const tryCash=u0=>{for(let d=10;d<=h.cash+(u0.rc||0);d+=10){const u={...u0,give:u0.give.slice(),get:u0.get.slice()};let left=d;const r=Math.min(u.rc,left);u.rc-=r;left-=r;u.gc+=left;if(u.gc>h.cash)break;if(trOkFor(u,a))return u}return null};
+ const gouge=c=>{if(!c)return c;const o2=own2(c),gain=setScore(h,o2)-setScore(h,G.own);if(nFull(h,o2)>nFull(h,G.own)&&nFull(a,o2)<=nFull(a,G.own)){let ex=Math.ceil(.3*gain/10)*10;ex=Math.min(ex,h.cash-Math.max(0,c.gc-c.rc));if(ex>0){const r=Math.min(c.rc,ex);c.rc-=r;c.gc+=ex-r}}return c};
+ let c=tryCash(t);if(c)return gouge(c);
+ const fullH=i=>S[i].g&&grp[S[i].g].every(j=>G.own[j]===h.i);
+ const cand=prop(h).filter(i=>!t.give.includes(i)&&!G.mort[i]&&!fullH(i)&&!(S[i].g&&grp[S[i].g].some(j=>G.h[j])));
+ const miss=i=>{const o={...G.own};o[i]=a.i;return setScore(h,G.own)-setScore(h,o)};
+ cand.sort((x,y)=>miss(x)-miss(y));
+ for(const i of cand.slice(0,6)){c=tryCash({...t,give:t.give.concat([i]),get:t.get.slice(),gc:0});if(c)return gouge(c)}
  return null}
 function aiTrade(){const t=G.tr,a=G.pl[t.to],ok=trOkFor(t,a);
  if(ok){say(`${a.n} accepts the offer.`);return trOk()}
@@ -609,14 +624,16 @@ function aiPropose(p){if((G.turnNo||0)-(p.lastProp==null?-9:p.lastProp)<3)return
  const clean=i=>!G.mort[i]&&!(S[i].g&&grp[S[i].g].some(j=>G.h[j]));
  const key=i=>S[i].g||S[i].t,cnt=i=>GI(key(i)).filter(j=>j!==i&&G.own[j]===p.i).length;
  const tradable=prop(p).filter(j=>clean(j)&&!(S[j].g&&cnt(j)>=1));
+ const hiP=Math.floor(Math.max(0,p.cash-100)/10),RB=b=>Math.floor(Math.max(0,b.cash-100)/10);
+ const mk=(b,give,get,k)=>k>=0?{from:p.i,to:b.i,give,get,gc:k*10,rc:0,st:1}:{from:p.i,to:b.i,give,get,gc:0,rc:-k*10,st:1};
  let best=null,bestNet=40;
+ const consider=(b,give,get)=>{if(!trOkFor(mk(b,give,get,hiP),b))return;let lo=-RB(b),h2=hiP;while(lo<h2){const m=Math.floor((lo+h2)/2);trOkFor(mk(b,give,get,m),b)?h2=m:lo=m+1}
+  const rf=p.ref&&p.ref[trKey(mk(b,give,get,0))];if(rf&&rf.until>(G.turnNo||0))return;let k0=lo;if(rf)k0=Math.max(lo,Math.ceil((rf.gc+30)/10));if(k0>hiP)return;
+  let t=mk(b,give,get,k0);if(!rf&&!b.ai){const o2=own2(t),gain=setScore(b,o2)-setScore(b,G.own);if(nFull(b,o2)>nFull(b,G.own)&&nFull(p,o2)<=nFull(p,G.own)){const bump=Math.min(Math.ceil(.35*gain/10),Math.max(0,k0+RB(b)));if(bump>0)t=mk(b,give,get,k0-bump)}}
+  const net=tradeNet(t,p);if(net>bestNet){bestNet=net;best=t}};
  G.pl.forEach(b=>{if(b===p||b.out)return;if(p.refTo&&p.refTo[b.i]!=null&&(G.turnNo||0)-p.refTo[b.i]<8)return;
-  prop(b).filter(i=>clean(i)&&cnt(i)>=1).forEach(i=>{
-   const opts=[[]];tradable.forEach((j,x)=>{opts.push([j]);for(let y=x+1;y<tradable.length;y++)opts.push([j,tradable[y]])});
-   const hi=Math.floor(Math.max(0,p.cash-100)/10);
-   opts.forEach(give=>{const mk=k=>({from:p.i,to:b.i,give,get:[i],gc:k*10,rc:0,st:1});
-    if(!trOkFor(mk(hi),b))return;let lo=0,h2=hi;while(lo<h2){const m=(lo+h2)>>1;trOkFor(mk(m),b)?h2=m:lo=m+1}
-    const rf=p.ref&&p.ref[trKey(mk(0))];if(rf&&(rf.until>(G.turnNo||0)))return;let k0=lo;if(rf)k0=Math.max(lo,Math.ceil((rf.gc+30)/10));if(k0>hi)return;const t=mk(k0),net=tradeNet(t,p);if(net>bestNet){bestNet=net;best=t}})})});
+  prop(b).filter(i=>clean(i)&&cnt(i)>=1).forEach(i=>{const opts=[[]];tradable.forEach((j,x)=>{opts.push([j]);for(let y=x+1;y<tradable.length;y++)opts.push([j,tradable[y]])});opts.forEach(give=>consider(b,give,[i]))});
+  tradable.filter(j=>S[j].g&&GI(key(j)).some(x=>x!==j&&G.own[x]===b.i)).forEach(j=>consider(b,[j],[]))});
  if(!best)return false;
  p.lastProp=G.turnNo||0;if(Math.random()>.85)return false;
  const b=G.pl[best.to];G.tr=best;say(`${p.n} offers a trade to ${b.n}.`);
@@ -1826,16 +1843,16 @@ function evBank(c){
  return {sc,cam:K.cam,upd:K.upd}}
 // ---- win ----
 function evWin(c){
- const K=kit({night:1,fog:[0x141a40,26,80],hemi:[0x8a9ae0,0x2a2230,.75],sun:[0xfff0d0,1.0,[-5,12,9]],fill:[0x6a7ac0,.25],cam:[[0,3.4,12],[0,3.2,0],44]});const {S,L,C,bx,sc,ups}=K;
+ const K=kit({night:1,fog:[0x141a40,26,80],hemi:[0x8a9ae0,0x2a2230,.75],sun:[0xfff0d0,1.0,[-5,12,9]],fill:[0x6a7ac0,.25],cam:[[0,3.0,10.8],[0,2.1,0],44]});const {S,L,C,bx,sc,ups}=K;
  S(new THREE.Mesh(new THREE.CylinderGeometry(10,10,.5,48),C(0x1c2030,.3,{metalness:.2})),0,-.25,0,1,1);
- const gd=C(0xf2c94c,.3,{metalness:.6});[[0,.4,0,4.4,.8],[0,.9,0,3.2,1.8],[0,1.5,0,2.2,3.0]].forEach(([x,y,z,w,h],k)=>S(new THREE.Mesh(new THREE.CylinderGeometry(w*.5,w*.55,h,28),gd),x,h/2,z,1,1));
- rays(K,0,12,-2,9,0xfff0a0,16);K.glow(0,5,-1,16,0xffe090);
- const tk=tok3(c.tk,c.col),tg=new THREE.Group();tg.position.set(0,3.0,0);tg.scale.setScalar(1.7);tg.add(tk);sc.add(tg);
- const cr=new THREE.Group();[0,1,2,3,4].forEach(k=>{const a=k*Math.PI*2/5,m=new THREE.Mesh(new THREE.ConeGeometry(.16,.5,4),gd);m.position.set(Math.cos(a)*.42,.28,Math.sin(a)*.42);cr.add(m)});const rr=new THREE.Mesh(new THREE.CylinderGeometry(.45,.45,.2,16,1,true),new THREE.MeshStandardMaterial({color:0xf2c94c,metalness:.6,roughness:.3,side:THREE.DoubleSide}));cr.add(rr);const bb=new THREE.Box3().setFromObject(tk);cr.position.set(0,bb.max.y+.3,0);tk.add(cr);
+ const gd=C(0xf2c94c,.3,{metalness:.6});
+ rays(K,0,12,-2,9,0xfff0a0,16);K.glow(0,2.6,-1,16,0xffe090);
+ const tk=tok3(c.tk,c.col),tg=new THREE.Group();tg.position.set(0,0,0);tg.add(tk);sc.add(tg);
+ const cr=new THREE.Group();[0,1,2,3,4].forEach(k=>{const a=k*Math.PI*2/5,m=new THREE.Mesh(new THREE.ConeGeometry(.16,.5,4),gd);m.position.set(Math.cos(a)*.42,.28,Math.sin(a)*.42);cr.add(m)});const rr=new THREE.Mesh(new THREE.CylinderGeometry(.45,.45,.2,16,1,true),new THREE.MeshStandardMaterial({color:0xf2c94c,metalness:.6,roughness:.3,side:THREE.DoubleSide}));cr.add(rr);const bb=new THREE.Box3().setFromObject(tk);cr.scale.setScalar(1.35);cr.position.set(0,bb.max.y+.08,0);tk.add(cr);tg.scale.setScalar(Math.min(2.0,3.7/(bb.max.y+.6)));
  const cols=[0xff5a7a,0x4aa8ff,0xffd23f,0x6ad08a,0xc46bff],cf=[];cols.forEach(co=>{const mt=new THREE.MeshBasicMaterial({color:co,side:THREE.DoubleSide});for(let k=0;k<34;k++){const m=new THREE.Mesh(new THREE.PlaneGeometry(.3,.18),mt);sc.add(m);cf.push({m,o:Math.random(),x:-8+Math.random()*16,z:-4+Math.random()*7,s:.5+Math.random()*.5})}});
  const bursts=[];[[-6,9,-4,0xff6a8a,0],[6,10,-5,0x6ac8ff,.55],[0,12,-6,0xffd23f,1.1]].forEach(([x,y,z,col,ph])=>{const n=46,g=new THREE.BufferGeometry(),pp=new Float32Array(n*3),vs=[];for(let k=0;k<n;k++){const a=Math.random()*Math.PI*2,b=Math.acos(Math.random()*2-1),r=3+Math.random()*3;vs.push([Math.sin(b)*Math.cos(a)*r,Math.sin(b)*Math.sin(a)*r,Math.cos(b)*r])}g.setAttribute('position',new THREE.BufferAttribute(pp,3));const m=new THREE.PointsMaterial({size:1.1,color:col,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,map:new THREE.CanvasTexture(T.star()),fog:false});const p=new THREE.Points(g,m);p.frustumCulled=false;sc.add(p);bursts.push({p,vs,x,y,z,ph})});
  nightBits(K,-14,24,-70,10);
- ups.push(t=>{const jp=Math.abs(Math.sin(t*4.2));tg.position.y=3.0+jp*.8;tg.rotation.y=t*2.4;
+ ups.push(t=>{const jp=Math.abs(Math.sin(t*4.2));tg.position.y=jp*1.2;tg.rotation.y=t*2.4;
   cf.forEach((o,k)=>{const u=(t*.22*o.s+o.o)%1;o.m.position.set(o.x+Math.sin(t*1.5+k)*1.2,12-u*12,o.z);o.m.rotation.set(t*3+k,t*2+k*2,t)});
   bursts.forEach(b=>{const u=((t+b.ph)%1.7)/1.7,e=1-Math.pow(1-u,2),p=b.p.geometry.attributes.position.array;b.vs.forEach((v,k)=>{p[k*3]=b.x+v[0]*e;p[k*3+1]=b.y+v[1]*e-u*u*3;p[k*3+2]=b.z+v[2]*e});b.p.geometry.attributes.position.needsUpdate=true;b.p.material.opacity=u<.1?u*10:(1-u)});
  });
