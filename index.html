@@ -263,9 +263,9 @@ function endTurn(){if(G.win!=null)return;const p=me();BM=null;AM=false;G.turnNo=
  G.again=false;G.phase='roll';render()}
 const busy=()=>G.phase=='debt'||G.phase=='auction';
 function canB(i){const s=S[i],h=G.h[i]||0;return !busy()&&G.own[i]===G.cur&&s.g&&owns(G.cur,s.g)&&h<5&&me().cash>=HC[s.g]&&grp[s.g].every(j=>!G.mort[j]&&(!HR.even||(G.h[j]||0)>=h))&&(h<4?G.hs>0:G.ht>0)}
-function canS(i){const s=S[i],h=G.h[i]||0;return h>0&&grp[s.g].every(j=>!HR.even||(G.h[j]||0)<=h)&&(h<5||G.hs>=4)}
+function canS(i){const s=S[i],h=G.h[i]||0;return h>0&&grp[s.g].every(j=>!HR.even||(G.h[j]||0)<=h)}
 function build(i){if(!canB(i))return;const h=G.h[i]||0;if(h<4)G.hs--;else{G.ht--;G.hs+=4}me().cash-=HC[S[i].g];G.h[i]=h+1;const bl=G.bl=G.bl||{},r=bl[i]=bl[i]||{h:0,t:0};if(h<4)r.h++;else r.t++;render()}
-function sell(i){if(!canS(i))return;const h=G.h[i];if(h==5){G.ht++;G.hs-=4}else G.hs++;me().cash+=HC[S[i].g]/2;G.h[i]=h-1;if(G.bl&&G.bl[i]){const r=G.bl[i];if(h==5&&r.t>0)r.t--;else if(h<5&&r.h>0)r.h--}say(`${me().n} sells a house on ${S[i].n}.`);render()}
+function sell(i){if(!canS(i))return;const h=G.h[i],nh=h-1;if(h==5){G.ht++;G.hs=Math.max(0,G.hs-4)}else G.hs++;me().cash+=HC[S[i].g]/2*(h-nh);G.h[i]=nh;if(G.bl&&G.bl[i]){const r=G.bl[i];if(h==5&&r.t>0)r.t--;else if(h<5&&r.h>0)r.h--}say(h==5?`${me().n} sells the hotel on ${S[i].n} and keeps 4 houses.`:`${me().n} sells a house on ${S[i].n}.`);render()}
 function canM(i){return G.own[i]===G.cur&&!G.mort[i]&&!(S[i].g&&grp[S[i].g].some(j=>G.h[j]))}
 const uc=i=>Math.ceil(S[i].p*.55);
 function mort(i){if(!canM(i))return;me().cash+=S[i].p/2;G.mort[i]=1;say(`${me().n} mortgages ${S[i].n}.`);fx(i);render()}
@@ -468,8 +468,8 @@ function bmTap(i){const s=S[i],q=me(),B=BM;if(!s.p)return;const bad=t=>{B.sel=nu
    if(B.sel===i){build(i);const n=G.h[i];B.note=`Built ${n==5?'a hotel':'house '+n} on ${s.n} (-$${c}). Select another property.`;B.sel=null;return render()}
    B.sel=i;B.note=`${GN[s.g]} set - ${s.n}: ${h<4?'house '+(h+1):'a hotel'} costs $${c}. Tap again to build.`;return render()}
   if(!canS(i))return bad(h?'Sell evenly: sell from another property in the set first.':s.n+' has no buildings to sell.');
-  if(B.sel===i){sell(i);B.note=`Sold ${h==5?'the hotel':'a house'} on ${s.n} (+$${c/2}).`;B.sel=null;return render()}
-  B.sel=i;B.note=`${GN[s.g]} set - ${s.n}: selling ${h==5?'the hotel':'a house'} returns $${c/2}. Tap again to sell.`;return render()}
+  if(B.sel===i){sell(i);B.note=`Sold ${h==5?'the hotel (4 houses remain)':'a house'} on ${s.n} (+$${c/2}).`;B.sel=null;return render()}
+  B.sel=i;B.note=`${GN[s.g]} set - ${s.n}: selling ${h==5?'the hotel (down to 4 houses)':'a house'} returns $${c/2}. Tap again to sell.`;return render()}
  if(G.mort[i]){const c=uc(i);if(q.cash<c)return bad(`Unmortgaging ${s.n} costs $${c}; you have $${q.cash}.`);
   if(B.sel===i){unm(i);B.note=`Unmortgaged ${s.n} (-$${c}).`;B.sel=null;return render()}
   B.sel=i;B.note=`Unmortgage ${s.n} for $${c}. Tap again to unmortgage.`;return render()}
