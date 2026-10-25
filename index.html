@@ -431,7 +431,7 @@ const win=(t,b,x='')=>`<div class="dw"><div class="tb" style="display:flex;justi
 const fgc=g=>g&&!['lb','yellow','orange','pink'].includes(g)?'#fff':g?'#000':'#fff';
 function diceRow(){if(G.spin)return die(rd(),'spin')+die(rd(),'spin');if(G.phase=='rolling'&&G.show)return die(G.show[0],'rolling')+die(G.show[1],'rolling');const fr=G.rollN!==G.seenRoll;G.seenRoll=G.rollN;const c=fr?'rolling':'';return G.rollN?die(G.d[0],c)+die(G.d[1],c):die(1)+die(1)}
 function hrUI(){const tab=(k,t)=>`<button class="s${STAB==k?' on':''}" style="margin:0 4px 6px 0" onclick="STAB='${k}';render()">${t}</button>`;let b;
- if(STAB=='g')b=`<label class="hl"><input type="checkbox" ${SND?'checked':''} onchange="SND=this.checked;if(SND)sfx('coin');render()"> Sound effects</label><label class="hl"><input type="checkbox" ${SPD?'checked':''} onchange="SPD=this.checked;render()"> Speed mode (AI turns move quickly, skipping animations, so you reach your turn sooner)</label>`;
+ if(STAB=='g')b=`<label class="hl"><input type="checkbox" ${SND?'checked':''} onchange="SND=this.checked;if(SND)sfx('coin');render()"> Sound effects</label><label class="hl"><input type="checkbox" ${MUS.on?'checked':''} onchange="musicToggle(this.checked)"> Background music</label><div class="hl" style="margin:0 0 6px 22px">Now playing: <b>${SONGS[MUS.song].n}</b> (${MUS.song+1} of ${SONGS.length}) <button class="s" style="margin:0 0 0 6px" onclick="musicNext()">Next song &#9654;&#9654;</button></div><label class="hl"><input type="checkbox" ${SPD?'checked':''} onchange="SPD=this.checked;render()"> Speed mode (AI turns move quickly, skipping animations, so you reach your turn sooner)</label>`;
  else b=HRL.map(([k,t])=>`<label class="hl"><input type="checkbox" ${HR[k]?'checked':''} onchange="HR['${k}']=this.checked?1:0;render()"> ${t}</label>`).join('');
  return win('Settings',tab('g','Game Settings')+tab('h','House Rules')+b+'<button onclick="HRO=false;render()">OK</button><button onclick="devOpen()">Developer Preview</button>','<button class="s" style="margin:0;min-height:18px;padding:0 6px" onclick="HRO=false;render()">X</button>')}
 function deed(i){const s=S[i],g=s.g,o=G.own[i],h=G.h[i]||0,r=s.r;let rows,act=-1;
@@ -654,7 +654,7 @@ function mini(q,g){const ids=grp[g],n=ids.length,own=ids.map(i=>G.own[i]===q.i),
  return `<div class="gs" onclick="showMG(${q.i},'${g}')"><svg viewBox="0 0 40 29">${v}</svg><span>${k}/${n}</span><div class="hh">${hs?HSV('hi')+hs:''}${ht?HTV('hi')+ht:''}</div></div>`}
 function ico(q,i,g){const o=G.own[i]===q.i;return `<div class="ii${o?' on':''}${o&&G.mort[i]?' mt2':''}" onclick="showMG(${q.i},'${g}')">${ICN(i)}</div>`}
 
-function gfIcons(q){return [['ch',100,'Luck','#7b4fd0','#fff','?'],['cc',101,'Fortune','#d9a63a','#3d2905','$']].map(([k,id,n,c,t,m])=>{const h=q.gf.includes(k),use=h&&q.i==G.cur&&q.jail&&G.phase=='roll'&&!q.ai&&!G.tr&&G.win==null;return `<div class="ii gfc${h?' on':''}" ${h?`data-pi="${id}"`:''} title="${n}: Get Out of Jail Free${h?(use?' - tap to use':' - drag into a trade'):' (not held)'}" style="--gc:${c}"${use?` onclick="useGF('${k}')"`:''}><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2" fill="${c}" stroke="#000"/><text x="12" y="15.5" text-anchor="middle" font-size="9" font-weight="700" fill="${t}" font-family="Georgia,serif">${m}</text><path d="M6 8h12" stroke="${t}" stroke-width=".8"/></svg></div>`}).join('')}
+function gfIcons(q){return [['ch',100,'Luck','#7b4fd0','#fff','?'],['cc',101,'Fortune','#d9a63a','#3d2905','$']].map(([k,id,n,c,t,m])=>{const h=q.gf.includes(k),use=h&&q.i==G.cur&&q.jail&&(G.phase=='roll'||G.phase=='end')&&!q.ai&&!G.tr&&G.win==null;return `<div class="ii gfc${h?' on':''}" ${h?`data-pi="${id}"`:''} title="${n}: Get Out of Jail Free${h?(use?' - tap to use':' - drag into a trade'):' (not held)'}" style="--gc:${c}"${use?` onclick="useGF('${k}')"`:''}><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2" fill="${c}" stroke="#000"/><text x="12" y="15.5" text-anchor="middle" font-size="9" font-weight="700" fill="${t}" font-family="Georgia,serif">${m}</text><path d="M6 8h12" stroke="${t}" stroke-width=".8"/></svg></div>`}).join('')}
 function plUI(){const rr=GI('rail'),GK=Object.keys(C);
  return `<div class="card" data-t="Players and Properties">${G.pl.map(q=>`<div class="ph${q.i==G.cur?' act':''}${q.out?' out':''}"><div class="pt">${tok(q)}</div><b class="pn">${q.n}${q.ai?' (AI)':''}${q.jail?' - Jail':''}</b><b class="pc">$${q.cash}</b></div>${q.out?'':`<div class="pbd"><div class="ir">${rr.map(i=>ico(q,i,'rail')).join('')}<i class="sep"></i>${[12,28].map(i=>ico(q,i,'util')).join('')}<i class="sep"></i>${gfIcons(q)}</div><div class="gr8">${GK.map(g=>mini(q,g)).join('')}</div></div>`}`).join('')}<div class="pfoot">Bank: ${G.hs} houses, ${G.ht} hotels. Unowned: ${S.filter((c,i)=>c.p&&G.own[i]==null).length} of 28. Tap a group to view, build or mortgage.</div></div>`}
 const bt2=(f,i,t,ok)=>`<button class="s" onclick="${f}(${i})" ${ok?'':'disabled'}>${t}</button>`;
@@ -717,7 +717,7 @@ function render0(){const A=document.getElementById('app');
  else if(ph=='auction')act='<b>Auction in progress.</b> Bid in the board window.';
  else if(ph=='debt'){const d=G.debt;act=`<b>You owe $${d.a}.</b> Tap one of your property groups in the Players section to mortgage or sell houses.<br><button onclick="payDebt()" ${p.cash<d.a?'disabled':''}>Pay $${d.a}</button><button class="s" onclick="bankrupt(me(),G.debt.to);render()">Declare bankruptcy</button>`}
  else{
-  if(ph=='roll')act+=(p.jail?`<button class="s" onclick="payJail()" ${assets(p)<50?'disabled':''}>Pay $50 to leave jail</button>`+p.gf.map(k=>`<button class="s" style="background:${k=='ch'?'#7b4fd0;color:#fff':'#d9a63a;color:#3d2905'};font-weight:700" onclick="useGF('${k}')">Use ${k=='ch'?'Luck':'Fortune'} Get Out of Jail Free</button>`).join(''):'');
+  if((ph=='roll'||ph=='end')&&p.jail&&!G.tr)act+=(p.jail?(ph=='roll'?`<button class="s" onclick="payJail()" ${assets(p)<50?'disabled':''}>Pay $50 to leave jail</button>`:'')+p.gf.map(k=>`<button class="s" style="background:${k=='ch'?'#7b4fd0;color:#fff':'#d9a63a;color:#3d2905'};font-weight:700" onclick="useGF('${k}')">Use ${k=='ch'?'Luck':'Fortune'} Get Out of Jail Free</button>`).join(''):'');
   if(ph=='buy')act+='<b>Decide on '+s.n+' in the board window.</b>';
   if(ph=='end')top=''}
  if(G.win==null&&!p.ai&&!G.tr&&(ph=='roll'||ph=='end'))trd=`<button class="s" onclick="openTr()">Trade</button>`;if(G.win==null){const ac=ph=='auction'?G.pl[G.auc.t]:p;if(ac.ai)top=trd='',act=`<b>${ac.n} is thinking…</b>`+(ph=='auction'?` Auction bid: $${G.auc.bid}`:'')}if(G.tr&&G.tr.st==1&&!G.pl[G.tr.to].ai&&G.pl[G.tr.from].ai)act=`<b>${G.pl[G.tr.from].n} offers you a trade. See the board window.</b>`; 
@@ -733,7 +733,7 @@ render();
 let SND=true,AC=null,MG0=null,SPD=false,SKH=false,STAB='g';const aiMv=()=>SPD&&G&&G.pl[G.cur]&&G.pl[G.cur].ai;
 const SIL='data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';let SA=null;
 function ac(){try{if(!AC){AC=new (window.AudioContext||window.webkitAudioContext)();const cp=AC.createDynamicsCompressor();cp.connect(AC.destination);const lp=AC.createBiquadFilter();lp.type='lowpass';lp.frequency.value=3600;lp.Q.value=.5;lp.connect(cp);MG0=AC.createGain();MG0.gain.value=2.4;MG0.connect(lp);try{const b=AC.createBuffer(1,1,22050),s=AC.createBufferSource();s.buffer=b;s.connect(AC.destination);s.start(0)}catch(e){}try{SA=new Audio(SIL);SA.loop=true;SA.setAttribute('playsinline','');SA.play().catch(()=>{})}catch(e){}}if(AC.state!='running')AC.resume()}catch(e){}return AC}
-['pointerdown','touchend','click'].forEach(ev=>document.addEventListener(ev,e=>{ac();},true));
+['pointerdown','touchend','click'].forEach(ev=>document.addEventListener(ev,e=>{ac();musicEnsure()},true));
 function tn(f,t,d,ty='square',v=.07,f2){if(ty=='square'||ty=='sawtooth')ty='triangle';const o=AC.createOscillator(),g=AC.createGain(),t0=AC.currentTime+t;o.type=ty;o.frequency.setValueAtTime(f,t0);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t0+d);g.gain.setValueAtTime(0,t0);g.gain.linearRampToValueAtTime(v,t0+.014);g.gain.exponentialRampToValueAtTime(.0001,t0+d);o.connect(g);g.connect(MG0);o.start(t0);o.stop(t0+d+.02)}
 function ns(t,d,v=.15,f=1800,q=1,f2){const n=AC.sampleRate*d|0,b=AC.createBuffer(1,n,AC.sampleRate),a=b.getChannelData(0);for(let i=0;i<n;i++)a[i]=Math.random()*2-1;const s=AC.createBufferSource(),fl=AC.createBiquadFilter(),g=AC.createGain(),t0=AC.currentTime+t;s.buffer=b;fl.type='bandpass';fl.frequency.setValueAtTime(f,t0);if(f2)fl.frequency.exponentialRampToValueAtTime(f2,t0+d);fl.Q.value=q;g.gain.setValueAtTime(v,t0);g.gain.exponentialRampToValueAtTime(.0001,t0+d);s.connect(fl);fl.connect(g);g.connect(MG0);s.start(t0)}
 
@@ -778,6 +778,87 @@ const TKV2=[
 const NV=[.4,.56,.68,.62,.3,.55,.8,.85,.51,1];
 function tkPlay(j){const f=TKV2[j]||TKV[j]||TKV[0],m=MG0,gg=AC.createGain();gg.gain.value=NV[j]||1;gg.connect(m);MG0=gg;try{f()}finally{MG0=m}}
 function tkPrev(j){try{ac();if(AC.state!='running')AC.resume();tkPlay(j)}catch(e){}}
+// ---- background music: procedural jazz trio (piano, upright bass, brushed drums) ----
+const mf=m=>440*Math.pow(2,(m-69)/12);
+const J_PC={C:0,D:2,E:4,F:5,G:7,A:9,B:11},J_Q={maj7:[0,4,7,11],m7:[0,3,7,10],'7':[0,4,7,10],m7b5:[0,3,6,10],dim7:[0,3,6,9],m6:[0,3,7,9],'6':[0,4,7,9]},
+ J_S={maj7:[0,2,4,5,7,9,11],m7:[0,2,3,5,7,9,10],'7':[0,2,4,5,7,9,10],m7b5:[0,2,3,5,6,8,10],dim7:[0,2,3,5,6,8,9,11],m6:[0,2,3,5,7,9,10],'6':[0,2,4,5,7,9,11]};
+const jch=s=>{const m=/^([A-G])([b#]?)(.*)$/.exec(s);let r=J_PC[m[1]]+(m[2]=='b'?-1:m[2]=='#'?1:0);return {r:(r+12)%12,q:m[3]||'maj7'}};
+const SONGS=[
+ {n:'Blue Monday Blues',bpm:124,sw:.65,seed:11,bars:['F7','Bb7','F7','Cm7 F7','Bb7','Bdim7','F7','Am7 D7','Gm7','C7','F7 D7','Gm7 C7']},
+ {n:'Midnight Stroll',bpm:112,sw:.64,seed:23,bars:['Bbmaj7','Gm7','Cm7','F7','Dm7','G7','Cm7','F7','Bbmaj7','Gm7','Cm7','F7','Ebmaj7','Ebm7 Ab7','Bbmaj7 G7','Cm7 F7']},
+ {n:'Rainy Window',bpm:76,sw:.62,seed:37,bars:['Cmaj7','Am7','Dm7','G7','Em7','A7','Dm7','G7','Cmaj7','C7','Fmaj7','Fm6','Em7 A7','Dm7 G7','Cmaj7 A7','Dm7 G7']},
+ {n:'Uptown Strut',bpm:148,sw:.66,seed:41,bars:['Ebmaj7 Cm7','Fm7 Bb7','Gm7 C7','Fm7 Bb7','Ebmaj7 Cm7','Fm7 Bb7','Gm7 C7','Fm7 Bb7','Bbm7 Eb7','Abmaj7','Gm7 C7','Fm7 Bb7','Gm7','C7','Fm7','Bb7']},
+ {n:'Falling Leaves',bpm:100,sw:.64,seed:53,bars:['Am7','D7','Gmaj7','Cmaj7','F#m7b5','B7','Em7','Em7','Am7','D7','Gmaj7','Cmaj7','F#m7b5','B7','Em7','Em6']}
+].map(s=>({...s,ch:s.bars.map(b=>b.split(' ').map(jch))}));
+const jrng=a=>()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};
+const jcAt=(S,bar,slot)=>{const c=S.ch[bar];return c[c.length>1&&slot>=4?1:0]};
+const jtones=(c,lo,hi,sc)=>{const o=[],iv=sc?J_S[c.q]:J_Q[c.q];for(let m=lo;m<=hi;m++)if(iv.includes(((m-c.r)%12+12)%12))o.push(m);return o};
+const J_TPL=[[[0,2],[2,1],[3,1],[4,4]],[[1,1],[2,2],[4,1],[5,1],[6,2]],[[0,1],[1,1],[2,2],[4,2],[6,2]],[[0,3],[3,2],[5,3]],[[2,1],[3,1],[4,1],[5,1],[6,2]],[[0,4],[4,2],[6,1],[7,1]],[[0,2],[3,2],[6,2]],[[1,2],[3,1],[4,2],[6,1],[7,1]]];
+function jMelody(S,seed,solo){const R=jrng(seed),out=[];let prev=72,dir=1;
+ for(let b=0;b<S.ch.length;b++){
+  if(!solo&&b>=8&&S.bars[b]==S.bars[b-8]){out.push(out[b-8]);continue}
+  const ev=[];let tpl;
+  if(solo){tpl=[];let s=R()<.3?1:0;while(s<8){const l=R()<.2?2:1;if(R()<.82)tpl.push([s,Math.min(l,8-s)]);s+=l}if(!tpl.length)tpl=[[0,2]]}else tpl=J_TPL[(R()*J_TPL.length)|0];
+  tpl.forEach(([s,l],k)=>{const c=jcAt(S,b,s),sc=jtones(c,62,86,1),ct=jtones(c,62,86,0);let m;
+   const last=b==S.ch.length-1&&k==tpl.length-1;
+   if(last&&!solo){m=ct.filter(x=>x%12==c.r||x%12==(c.r+(c.q=='m7'||c.q=='m6'?3:4))%12).sort((x,y)=>Math.abs(x-72)-Math.abs(y-72))[0]}
+   else if(s==0||s==4||k==0){const cs=ct.slice().sort((x,y)=>Math.abs(x-prev)-Math.abs(y-prev));m=cs[Math.min(cs.length-1,R()<.65?0:1)]}
+   else{const near=sc.filter(x=>Math.abs(x-prev)<=5&&x!=prev).sort((x,y)=>Math.abs(x-prev)-Math.abs(y-prev));let cs;if(solo){if(R()<.2)dir=-dir;cs=near.filter(x=>(x-prev)*dir>0);if(!cs.length){dir=-dir;cs=near.filter(x=>(x-prev)*dir>0)}m=cs.length?cs[R()<.7?0:Math.min(1,cs.length-1)]:prev}else{cs=near.slice(0,4);m=cs.length?cs[(R()*cs.length)|0]:prev}}
+   if(m<64)m+=12;if(m>84)m-=12;prev=m;ev.push({s,l:last?8-s:l,m})});
+  out.push(ev)}
+ return out}
+function jBass(S,bar,next,R){const out=[],segs=S.ch[bar].length>1?[[0,S.ch[bar][0],S.ch[bar][1]],[2,S.ch[bar][1],jcAt(S,next,0)]]:[[0,S.ch[bar][0],jcAt(S,next,0)]];
+ segs.forEach(([b0,c,nx])=>{const rt=33+((c.r-33)%12+12)%12,iv=J_Q[c.q],cand=iv.map(i=>rt+i),nr=33+((nx.r-33)%12+12)%12;
+  const two=segs.length==2;const pick=()=>cand[1+((R()*3)|0)];
+  out.push([b0,rt]);
+  if(two){const ap=nr+(R()<.5?1:-1);out.push([b0+1,R()<.45?ap:pick()])}
+  else{out.push([b0+1,pick()]);out.push([b0+2,R()<.5?rt+7:pick()]);const ap=nr+(nr<rt+5?1:-1)*(R()<.5?1:1);out.push([b0+3,(nr>rt+6?nr-1:nr+1)])}});
+ let pv=null;return out.map(([b,m])=>{if(pv!=null){while(m-pv>7)m-=12;while(pv-m>7)m+=12}while(m<31)m+=12;while(m>50)m-=12;pv=m;return [b,m]})}
+function jVoice(c,lo){const r=c.r,t3=c.q=='m7'||c.q=='m7b5'||c.q=='m6'||c.q=='dim7'?3:4,s7=c.q=='maj7'?11:c.q=='6'||c.q=='m6'?9:c.q=='dim7'?9:10,f5=c.q=='m7b5'||c.q=='dim7'?6:7;
+ const pcs=[(r+t3)%12,(r+s7)%12,(r+2)%12,(r+f5)%12],o=[];let p=lo;pcs.forEach(pc=>{let m=p-(p%12)+pc;while(m<p)m+=12;o.push(m);p=m+1});return o}
+const JW={};function jwave(c,k){const id=k+(c.sampleRate||0);if(!c._jw)c._jw={};if(c._jw[k])return c._jw[k];const H={p:[0,1,.38,.15,.07,.03],b:[0,1,.8,.4,.2,.1],r:[0,1,.12,.04]}[k];return c._jw[k]=c.createPeriodicWave(new Float32Array(H.length),new Float32Array(H))}
+function jnoise(c){if(c._jn)return c._jn;const n=c.sampleRate*1.5|0,b=c.createBuffer(1,n,c.sampleRate),a=b.getChannelData(0);for(let i=0;i<n;i++)a[i]=Math.random()*2-1;return c._jn=b}
+function jPno(c,d,t,m,dur,v){const f=mf(m),o=c.createOscillator(),g=c.createGain(),l=c.createBiquadFilter();o.setPeriodicWave(jwave(c,'p'));o.frequency.value=f;l.type='lowpass';l.frequency.value=Math.min(5200,f*4+700);l.Q.value=.4;
+ g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+.006);g.gain.exponentialRampToValueAtTime(v*.4,t+.14);g.gain.exponentialRampToValueAtTime(.0001,t+Math.max(.3,dur)+.4);o.connect(l);l.connect(g);g.connect(d);o.start(t);o.stop(t+Math.max(.3,dur)+.5)}
+function jBassN(c,d,t,m,dur,v){const f=mf(m),o=c.createOscillator(),g=c.createGain(),l=c.createBiquadFilter();o.setPeriodicWave(jwave(c,'b'));o.frequency.setValueAtTime(f*1.012,t);o.frequency.exponentialRampToValueAtTime(f,t+.05);l.type='lowpass';l.frequency.setValueAtTime(900,t);l.frequency.exponentialRampToValueAtTime(420,t+.2);l.Q.value=.7;
+ g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+.012);g.gain.exponentialRampToValueAtTime(v*.55,t+dur*.6);g.gain.linearRampToValueAtTime(.0001,t+dur);o.connect(l);l.connect(g);g.connect(d);o.start(t);o.stop(t+dur+.05)}
+function jNz(c,d,t,dur,v,type,f,q,att){const s=c.createBufferSource(),fl=c.createBiquadFilter(),g=c.createGain();s.buffer=jnoise(c);fl.type=type;fl.frequency.value=f;fl.Q.value=q||1;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+(att||.002));g.gain.exponentialRampToValueAtTime(.0001,t+dur);s.connect(fl);fl.connect(g);g.connect(d);s.start(t,Math.random()*.8,dur+.05)}
+const jRide=(c,d,t,v)=>{jNz(c,d,t,.34,v,'bandpass',7600,.9,.001);jNz(c,d,t,.07,v*.8,'highpass',9500,.7,.001);const o=c.createOscillator(),g=c.createGain();o.frequency.value=5230;g.gain.setValueAtTime(v*.18,t);g.gain.exponentialRampToValueAtTime(.0001,t+.12);o.connect(g);g.connect(d);o.start(t);o.stop(t+.13)};
+const jChick=(c,d,t,v)=>{jNz(c,d,t,.07,v,'highpass',6500,.8,.001);const o=c.createOscillator(),g=c.createGain();o.frequency.setValueAtTime(260,t);o.frequency.exponentialRampToValueAtTime(110,t+.05);g.gain.setValueAtTime(v*.5,t);g.gain.exponentialRampToValueAtTime(.0001,t+.06);o.connect(g);g.connect(d);o.start(t);o.stop(t+.07)};
+const jSwish=(c,d,t,v)=>jNz(c,d,t,.2,v,'bandpass',4200,.7,.03);
+const jKick=(c,d,t,v)=>{const o=c.createOscillator(),g=c.createGain();o.frequency.setValueAtTime(95,t);o.frequency.exponentialRampToValueAtTime(48,t+.1);g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.0001,t+.2);o.connect(g);g.connect(d);o.start(t);o.stop(t+.22)};
+const jSnr=(c,d,t,v)=>{jNz(c,d,t,.09,v,'bandpass',2400,.8,.001);const o=c.createOscillator(),g=c.createGain();o.frequency.value=185;g.gain.setValueAtTime(v*.5,t);g.gain.exponentialRampToValueAtTime(.0001,t+.07);o.connect(g);g.connect(d);o.start(t);o.stop(t+.08)};
+// schedule one bar. pass 0/2 = head, 1 = piano solo
+function jBar(c,d,S,bar,pass,t0,mel){const b=60/S.bpm,R=Math.random,ts=s=>t0+((s>>1)+((s&1)?S.sw:0))*b,nb=(bar+1)%S.ch.length,hu=()=>(R()-.5)*.012,head=pass!=1;
+ // bass (walking quarters)
+ jBass(S,bar,nb,R).forEach(([bt,m])=>jBassN(c,d,t0+bt*b+hu(),m,b*.92,.5*(bt==0?1:.88+R()*.1)));
+ // drums
+ [0,1,2,3].forEach(k=>{jRide(c,d,t0+k*b+hu()*.5,k%2?.05:.062);if(k%2)jChick(c,d,t0+k*b+hu(),.07);jSwish(c,d,t0+k*b,.035+(k%2?.012:0));if((k==0||k==2)&&R()<.7)jKick(c,d,t0+k*b+hu(),.1)});
+ [3,7].forEach(s=>jRide(c,d,ts(s)+hu()*.5,.04));
+ if(R()<.28)jSnr(c,d,ts(R()<.5?5:7),.05);
+ if(bar%4==3&&R()<.55){[5,6,7].forEach((s,i)=>jSnr(c,d,ts(s)+(i==1?.02:0),.04+i*.01))}
+ // piano comping
+ const cp=head?[[3],[],[3],[6],[3,6]][(R()*5)|0]:[[0,3],[3,6],[2,5],[1,4,7],[3],[0,3,6]][(R()*6)|0];
+ cp.forEach(s=>{const c1=jcAt(S,bar,s);jVoice(c1,52).forEach((m,i)=>jPno(c,d,ts(s)+i*.006+hu(),m,b*(.45+R()*.4),.032))});
+ // melody / solo line
+ (mel[bar]||[]).forEach(e=>{const st=ts(e.s)+hu(),en=ts(Math.min(8,e.s+e.l)),len=Math.max(.1,en-st);jPno(c,d,st,e.m,len*.95,head?.1:.085);if(head&&e.l>=3)jPno(c,d,st,e.m-12,len*.9,.03)})}
+// player
+const MUS={on:true,song:0,pass:0,bar:0,t:0,bus:null,timer:0,run:false,mel:null,solo:null};
+try{MUS.on=localStorage.getItem('capMusic')!='0'}catch(e){}
+function jOut(){if(!AC)return null;if(!MUS.out){MUS.out=AC.createGain();MUS.out.gain.value=.28;MUS.out.connect(AC.destination)}return MUS.out}
+function jLoad(i,fresh){const S=SONGS[i];MUS.song=i;MUS.pass=0;MUS.bar=0;MUS.mel=jMelody(S,S.seed,0);MUS.solo=null;MUS.t=AC.currentTime+(fresh?.15:.1);const bus=AC.createGain();bus.gain.value=1;bus.connect(jOut());MUS.bus=bus}
+function jTick(){if(!MUS.run||!AC)return;try{const S=SONGS[MUS.song];if(MUS.t<AC.currentTime)MUS.t=AC.currentTime+.08;
+  while(MUS.t<AC.currentTime+.8){if(MUS.pass==1&&MUS.bar==0)MUS.solo=jMelody(S,(S.seed*7+((Math.random()*1e6)|0)),1);
+   jBar(AC,MUS.bus,S,MUS.bar,MUS.pass,MUS.t,MUS.pass==1?MUS.solo:MUS.mel);MUS.t+=60/S.bpm*4;MUS.bar++;
+   if(MUS.bar>=S.ch.length){MUS.bar=0;MUS.pass++;if(MUS.pass>=3){jNext(false);return}}}}catch(e){}}
+function jFade(){const o=MUS.bus;if(o){try{o.gain.cancelScheduledValues(AC.currentTime);o.gain.setTargetAtTime(0,AC.currentTime,.05);setTimeout(()=>{try{o.disconnect()}catch(e){}},700)}catch(e){}}}
+function jNext(skip){if(!AC)return;const keep=MUS.t,ob=MUS.bus;if(skip)jFade();else if(ob)setTimeout(()=>{try{ob.disconnect()}catch(e){}},6000);jLoad((MUS.song+1)%SONGS.length,skip);if(!skip)MUS.t=Math.max(MUS.t,keep)}
+function musicStart(){if(!AC||!MUS.on||MUS.run)return;MUS.run=true;jLoad(MUS.song,1);clearInterval(MUS.timer);MUS.timer=setInterval(jTick,120);jTick()}
+function musicStop(){MUS.run=false;clearInterval(MUS.timer);if(AC)jFade()}
+function musicEnsure(){try{if(MUS.on&&AC&&!MUS.run)musicStart()}catch(e){}}
+function musicToggle(on){MUS.on=!!on;try{localStorage.setItem('capMusic',on?'1':'0')}catch(e){}if(on){ac();musicStart()}else musicStop();render()}
+function musicNext(){ac();if(!MUS.on){MUS.on=true;try{localStorage.setItem('capMusic','1')}catch(e){}}if(!MUS.run){MUS.song=(MUS.song+1)%SONGS.length;musicStart()}else jNext(true);render()}
+document.addEventListener('visibilitychange',()=>{if(document.hidden){if(MUS.run)clearInterval(MUS.timer)}else if(MUS.run){clearInterval(MUS.timer);MUS.timer=setInterval(jTick,120)}});
 const SFX={
  click:()=>tn(900,0,.04,'square',.04),
  dice:()=>{const ck=(t,v)=>{ns(t,.03,v,2400+Math.random()*1400,3.5);ns(t,.012,v*.7,6500,2);tn(140+Math.random()*80,t,.07,'sine',v*.55,80)};
